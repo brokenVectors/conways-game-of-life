@@ -8,11 +8,6 @@ int main() {
     Game game;
     float updateInterval = 0.2;
     bool pause = false;
-    game.set(15, 15, true);
-    game.set(14, 16, true);
-    game.set(15, 17, true);
-    game.set(12, 17, true);
-    game.set(16, 17, true);
     game.updateVertexArray();
     window.requestFocus();
     while(window.isOpen()) {
