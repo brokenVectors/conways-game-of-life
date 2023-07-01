@@ -2,38 +2,27 @@
 #include "constants.h"
 #include <array>
 #include <iterator>
+#include <algorithm>
+#include <iostream>
+#include <cmath>
+
 Game::Game() {
-    for(int y = 0; y < GRID_HEIGHT; y++) {
-        this->cells.push_back(std::vector<bool>());
-        for(int x = 0; x < GRID_WIDTH; x++) {
-            this->cells.at(y).push_back(false);
-        }
-    }
-    this->vertices = sf::VertexArray(sf::Quads, GRID_WIDTH * GRID_HEIGHT * 4);
+    this->aliveCells = std::vector<Cell>();
+    this->vertices = sf::VertexArray(sf::Quads, 40000);
 }
 void Game::updateVertexArray() {
-    // TODO: greedy meshing optimizations
     this->vertices.clear();
-    this->vertices.resize(GRID_WIDTH * GRID_HEIGHT * 4);
-    for(int y = 0; y < GRID_HEIGHT; y++) {
-        for(int x = 0; x < GRID_WIDTH; x++) {
-            this->vertices[(y*(GRID_WIDTH)+x)*4].position = sf::Vector2f(x * SQUARE_SIZE, y * SQUARE_SIZE);
-            this->vertices[(y*(GRID_WIDTH)+x)*4+1].position = sf::Vector2f((x+1) * SQUARE_SIZE, y * SQUARE_SIZE);
-            this->vertices[(y*(GRID_WIDTH)+x)*4+2].position = sf::Vector2f((x+1) * SQUARE_SIZE, (y+1) * SQUARE_SIZE);
-            this->vertices[(y*(GRID_WIDTH)+x)*4+3].position = sf::Vector2f(x * SQUARE_SIZE, (y+1) * SQUARE_SIZE);
-
-            sf::Color color;
-            if(this->cells.at(y).at(x)) {
-                color = sf::Color::White;
-            }
-            else {
-                color = sf::Color::Black;
-            }
-            this->vertices[(y*(GRID_WIDTH)+x)*4].color = color;
-            this->vertices[(y*(GRID_WIDTH)+x)*4+1].color = color;
-            this->vertices[(y*(GRID_WIDTH)+x)*4+2].color = color;
-            this->vertices[(y*(GRID_WIDTH)+x)*4+3].color = color;
-        }
+    this->vertices.resize(40000);
+    for(int i = 0; i < this->aliveCells.size(); i++) {
+        Cell cell = this->aliveCells.at(i);
+        this->vertices[i*4].position = sf::Vector2f((cell.x+xDisplayOffset) * SQUARE_SIZE, (cell.y+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4+1].position = sf::Vector2f((cell.x+xDisplayOffset+1) * SQUARE_SIZE, (cell.y+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4+2].position = sf::Vector2f((cell.x+xDisplayOffset+1) * SQUARE_SIZE, (cell.y+1+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4+3].position = sf::Vector2f((cell.x+xDisplayOffset) * SQUARE_SIZE, (cell.y+1+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4].color = sf::Color::White;
+        this->vertices[i*4+1].color = sf::Color::White;
+        this->vertices[i*4+2].color = sf::Color::White;
+        this->vertices[i*4+3].color = sf::Color::White;
     }
 }
 void Game::update() {
@@ -42,50 +31,88 @@ void Game::update() {
         Any dead cell with three live neighbours becomes a live cell.
         All other live cells die in the next generation. Similarly, all other dead cells stay dead. 
     */
-   // A copy of the cells array must be made, as changes will affect other events in the same generation.
-   std::vector<std::vector<bool>> cellsCopy;
-   std::copy(this->cells.begin(), this->cells.end(), std::back_inserter(cellsCopy));
-    for(int y = 0; y < GRID_HEIGHT; y++) {
-        for(int x = 0; x < GRID_WIDTH; x++) {
-            int neighbourCount = this->getNeighbourCount(cellsCopy, x, y);
-            if(neighbourCount == 3) {
-                // Cell gets populated
-                this->cells.at(y).at(x) = true;
-            }
-            else if(neighbourCount != 2) {
-                // Solitude / Overpopulation
-                this->cells.at(y).at(x) = false;
+    // loop through live cells, check neighbours in copy
+    // if n>1 and n<4, do nothing [yes]
+    // if n>3 or n<2, kill cell [yes]
+    // check number of neighbours in neighbouring cells, give life to cell if neighbours of neighbour = 3
+    std::vector<Cell> aliveCellsCopy;
+    std::copy(
+        this->aliveCells.begin(),
+        this->aliveCells.end(),
+        std::back_inserter(aliveCellsCopy)
+    );
+    auto iter = std::remove_if(this->aliveCells.begin(), this->aliveCells.end(), [this, &aliveCellsCopy](Cell cell) {
+        int neighbourCount = this->getAliveNeighbourCount(aliveCellsCopy, cell);
+        std::cout << neighbourCount << std::endl;
+        return (neighbourCount != 2) && (neighbourCount != 3);
+    });
+    this->aliveCells.erase(iter, this->aliveCells.end());
+    for(Cell cell: aliveCellsCopy) {
+        // cells that might have died can still reproduce in the same generation, this is why we loop through aliveCellsCopy instead of this->aliveCells
+        std::vector<Cell> neighbours = this->getAllNeighbors(cell);
+        for(Cell neighbour: neighbours) {
+            int neighbourNeighbourCount = this->getAliveNeighbourCount(aliveCellsCopy, neighbour);
+            if(neighbourNeighbourCount == 3 && !this->cellIsAlive(neighbour)) {
+                // give life to the neighbouring cell
+                this->aliveCells.push_back(neighbour);
             }
         }
     }
 }
-int Game::getNeighbourCount(std::vector<std::vector<bool>>& grid, int x, int y) {
-    int count = 0;
-    struct Coordinate {
-        int x, y;
-    };
-    std::array<Coordinate, 8> neighbourCoords =
-    {
-        Coordinate {-1, -1},
-        Coordinate {-1, 0},
-        Coordinate {-1, 1},
-        Coordinate {0, 1},
-        Coordinate {0, -1},
-        Coordinate {1, 1},
-        Coordinate {1, 0},
-        Coordinate {1, -1}
-    };
-    for(Coordinate coord: neighbourCoords) {
-        bool inBounds = (x+coord.x >= 0 && x+coord.x < GRID_WIDTH) && (y+coord.y >= 0 && y+coord.y < GRID_HEIGHT);
-        if(inBounds && grid.at(y+coord.y).at(x+coord.x)) {
-            ++count;
+bool Game::cellIsAlive(Cell cell) {
+    return std::find_if(
+        this->aliveCells.begin(),
+        this->aliveCells.end(),
+        [cell](Cell other) {
+            return other.x == cell.x && other.y == cell.y;
         }
-    }
-    return count;
+    ) != this->aliveCells.end();
+}
+int Game::getAliveNeighbourCount(std::vector<Cell>& cells, Cell cell) {
+    std::vector<Cell> neighbourCells;
+    return std::count_if(cells.begin(), cells.end(), [cell](Cell other) {
+        return !((other.x == cell.x) && (other.y == cell.y)) && (std::abs(other.x-cell.x) < 2) && (std::abs(other.y-cell.y) < 2);
+    });
+}
+
+std::vector<Cell> Game::getAllNeighbors(Cell cell) {
+    // This returns all neighbouring cells, regardless of whether they are alive or not.
+
+    // # # # (-1, 1), (0, 1), (1, 1)
+    // #   # (-1, 0), (1, 0)
+    // # # # (-1, -1), (0, -1), (1, -1)
+    std::vector<Cell> neighbourCells {
+        Cell {cell.x - 1, cell.y + 1},
+        Cell {cell.x, cell.y + 1},
+        Cell {cell.x + 1, cell.y + 1},
+        Cell {cell.x - 1, cell.y},
+        Cell {cell.x + 1, cell.y},
+        Cell {cell.x -1, cell.y - 1},
+        Cell {cell.x, cell.y - 1},
+        Cell {cell.x + 1, cell.y - 1},
+    };
+    return neighbourCells;
 }
 void Game::set(int x, int y, bool active) {
-    this->cells.at(y).at(x) = active;
+    if(active && !this->get(x, y))
+        this->aliveCells.push_back(Cell {x, y});
+    else if(!active) {
+        auto iter = std::remove_if(
+            this->aliveCells.begin(),
+            this->aliveCells.end(),
+            [x, y](Cell cell) {
+                return cell.x == x && cell.y == y;
+            }
+        );
+        this->aliveCells.erase(iter);
+    }
 }
 bool Game::get(int x, int y) {
-    return this->cells.at(y).at(x);
+    return std::find_if(
+        this->aliveCells.begin(),
+        this->aliveCells.end(),
+        [x, y](Cell cell) {
+            return cell.x == x && cell.y == y;
+        }
+    ) != this->aliveCells.end();
 }
