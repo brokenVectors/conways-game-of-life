@@ -27,11 +27,17 @@ int main() {
                     updateInterval -= 0.05;
                 }
             }
-            if(event.type == sf::Event::MouseButtonPressed) {
-                sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-                int x = mousePosition.x / SQUARE_SIZE;
-                int y = mousePosition.y / SQUARE_SIZE;
+            sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+            int x = mousePosition.x / SQUARE_SIZE;
+            int y = mousePosition.y / SQUARE_SIZE;
+            bool mouseInScreen = (x >= 0 && x < GRID_WIDTH) && (y >= 0 && y < GRID_HEIGHT);
+            if(event.type == sf::Event::MouseButtonPressed && mouseInScreen)  {
                 game.set(x, y, !game.get(x, y));
+                game.updateVertexArray();
+            }
+            else if(sf::Mouse::isButtonPressed(sf::Mouse::Left) && mouseInScreen) {
+                
+                game.set(x, y, true);
                 game.updateVertexArray();
             }
         }
