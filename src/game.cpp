@@ -15,10 +15,10 @@ void Game::updateVertexArray() {
     this->vertices.resize(40000);
     for(int i = 0; i < this->aliveCells.size(); i++) {
         Cell cell = this->aliveCells.at(i);
-        this->vertices[i*4].position = sf::Vector2f((cell.x+xDisplayOffset) * SQUARE_SIZE, (cell.y+yDisplayOffset) * SQUARE_SIZE);
-        this->vertices[i*4+1].position = sf::Vector2f((cell.x+xDisplayOffset+1) * SQUARE_SIZE, (cell.y+yDisplayOffset) * SQUARE_SIZE);
-        this->vertices[i*4+2].position = sf::Vector2f((cell.x+xDisplayOffset+1) * SQUARE_SIZE, (cell.y+1+yDisplayOffset) * SQUARE_SIZE);
-        this->vertices[i*4+3].position = sf::Vector2f((cell.x+xDisplayOffset) * SQUARE_SIZE, (cell.y+1+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4].position = sf::Vector2f(((float)cell.x+xDisplayOffset) * SQUARE_SIZE, ((float)cell.y+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4+1].position = sf::Vector2f((float)(cell.x+xDisplayOffset+1) * SQUARE_SIZE, ((float)cell.y+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4+2].position = sf::Vector2f((float)(cell.x+xDisplayOffset+1) * SQUARE_SIZE, ((float)cell.y+1+yDisplayOffset) * SQUARE_SIZE);
+        this->vertices[i*4+3].position = sf::Vector2f((float)(cell.x+xDisplayOffset) * SQUARE_SIZE, ((float)cell.y+1+yDisplayOffset) * SQUARE_SIZE);
         this->vertices[i*4].color = sf::Color::White;
         this->vertices[i*4+1].color = sf::Color::White;
         this->vertices[i*4+2].color = sf::Color::White;
@@ -43,7 +43,6 @@ void Game::update() {
     );
     auto iter = std::remove_if(this->aliveCells.begin(), this->aliveCells.end(), [this, &aliveCellsCopy](Cell cell) {
         int neighbourCount = this->getAliveNeighbourCount(aliveCellsCopy, cell);
-        std::cout << neighbourCount << std::endl;
         return (neighbourCount != 2) && (neighbourCount != 3);
     });
     this->aliveCells.erase(iter, this->aliveCells.end());

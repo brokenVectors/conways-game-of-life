@@ -4,9 +4,14 @@
 #include "constants.h"
 int main() {
     sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Conway's Game of Life");
-    sf::Clock clock;
+    sf::Clock updateGameClock;
+    sf::Clock deltaClock;
     Game game;
     float updateInterval = 0.2;
+    int w = 0;
+    int a = 0;
+    int s = 0;
+    int d = 0;
     bool pause = false;
     window.requestFocus();
     while(window.isOpen()) {
@@ -25,18 +30,24 @@ int main() {
                 if(event.key.code == sf::Keyboard::Up && updateInterval - 0.05 > 0) {
                     updateInterval -= 0.05;
                 }
-                if(event.key.code == sf::Keyboard::Z) {
-                    game.yDisplayOffset += 1;
-                }
-                if(event.key.code == sf::Keyboard::S) {
-                    game.yDisplayOffset -= 1;
-                }
-                if(event.key.code == sf::Keyboard::Q) {
-                    game.xDisplayOffset += 1;
-                }
-                if(event.key.code == sf::Keyboard::D) {
-                    game.xDisplayOffset -= 1;
-                }
+                if(event.key.code == sf::Keyboard::Z)
+                    w = 1;
+                if(event.key.code == sf::Keyboard::Q)
+                    a = 1;
+                if(event.key.code == sf::Keyboard::S)
+                    s = 1;
+                if(event.key.code == sf::Keyboard::D)
+                    d = 1;
+            }
+            if(event.type == sf::Event::KeyReleased) {
+                if(event.key.code == sf::Keyboard::Z)
+                    w = 0;
+                if(event.key.code == sf::Keyboard::Q)
+                    a = 0;
+                if(event.key.code == sf::Keyboard::S)
+                    s = 0;
+                if(event.key.code == sf::Keyboard::D)
+                    d = 0;
             }
             sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
             int x = mousePosition.x / SQUARE_SIZE - game.xDisplayOffset;
@@ -47,16 +58,20 @@ int main() {
             }
             else if(sf::Mouse::isButtonPressed(sf::Mouse::Left) && mouseInScreen) {
                 game.set(x, y, true);
-            }
+            }    
         }
-        if(clock.getElapsedTime().asSeconds() > updateInterval && !pause) {
-            clock.restart();
+        float dt = deltaClock.getElapsedTime().asSeconds();
+        if(updateGameClock.getElapsedTime().asSeconds() > updateInterval && !pause) {
+            updateGameClock.restart();
             game.update();
         }
+        game.xDisplayOffset += (a - d) * 3000 * dt;
+        game.yDisplayOffset += (w - s) * 3000 * dt;
         game.updateVertexArray();
         window.clear(sf::Color::Black);
         window.draw(game);
         window.display();
+        deltaClock.restart();
     }
     return 0;
 }

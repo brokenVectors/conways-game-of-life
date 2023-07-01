@@ -17,8 +17,8 @@ class Game : public sf::Drawable {
         target.draw(this->vertices);
     }
     public:
-    int xDisplayOffset = 0;
-    int yDisplayOffset = 0;
+    float xDisplayOffset = 0;
+    float yDisplayOffset = 0;
     void update();
     void set(int x, int y, bool active);
     bool get(int x, int y);
