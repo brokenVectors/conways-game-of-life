@@ -11,7 +11,7 @@ class Game : public sf::Drawable {
     //std::vector<std::vector<bool>> cells;
     std::vector<Cell> aliveCells;
     sf::VertexArray vertices;
-    int getAliveNeighbourCount(std::vector<Cell>& cells, Cell cell);
+    int getAliveNeighbourCount(std::vector<Cell>& cells, Cell& cell);
     std::vector<Cell> getAllNeighbors(const Cell& cell);
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
         target.draw(this->vertices);

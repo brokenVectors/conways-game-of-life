@@ -70,7 +70,7 @@ bool Game::cellIsAlive(const Cell& cell) {
         }
     ) != this->aliveCells.end();
 }
-int Game::getAliveNeighbourCount(std::vector<Cell>& cells, Cell cell) {
+int Game::getAliveNeighbourCount(std::vector<Cell>& cells, Cell& cell) {
     std::vector<Cell> neighbourCells;
     return std::count_if(cells.begin(), cells.end(), [cell](Cell& other) {
         return !((other.x == cell.x) && (other.y == cell.y)) && (std::abs(other.x-cell.x) < 2) && (std::abs(other.y-cell.y) < 2);
