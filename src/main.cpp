@@ -5,7 +5,6 @@
 int main() {
     sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Conway's Game of Life");
     sf::Clock updateGameClock;
-    sf::Clock deltaClock;
     Game game;
     float updateInterval = 0.2;
     int w = 0;
@@ -60,18 +59,16 @@ int main() {
                 game.set(x, y, true);
             }    
         }
-        float dt = deltaClock.getElapsedTime().asSeconds();
         if(updateGameClock.getElapsedTime().asSeconds() > updateInterval && !pause) {
             updateGameClock.restart();
             game.update();
         }
-        game.xDisplayOffset += (a - d) * 3000 * dt;
-        game.yDisplayOffset += (w - s) * 3000 * dt;
+        game.xDisplayOffset += (a - d) * 0.2;
+        game.yDisplayOffset += (w - s) * 0.2;
         game.updateVertexArray();
         window.clear(sf::Color::Black);
         window.draw(game);
         window.display();
-        deltaClock.restart();
     }
     return 0;
 }
